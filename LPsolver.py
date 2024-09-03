@@ -4,32 +4,14 @@ import docplex
 from docplex.mp.model import Model
 
 
-# meta_board = [0, 0, 'wall', 0, 'wall', 0, 0, 0, 0]
-# wall = 2
-# wall_notclear = 1
-# connections = [[1, 1, 0, 1, 0, 0, 1, 0, 0], [1, 1, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 0, 0, 1, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0, 1], [1, 0, 0, 1, 0, 0, 1, 1, 1], [0, 0, 0, 0, 0, 0, 1, 1, 1], [0, 0, 0, 0, 0, 1, 1, 1, 1]]
-# limitwall_val = [0]
-# limitwall_idx = [[6, 2]]
-# columns = [[1, 4, 7], [2], [8], [6, 9]]
-# rows = [[1, 2], [4], [6], [7, 8, 9]]
-
 def to_cplex_set(list):
     for i in range(len(list)):
         list[i] = set(list[i])
     return list
 
-def to_cplex_idx(list):
-    for i in range(len(list)):
-        for j in range(len(list[i])):
-            list[i][j] -= 1
-    return list
 
 def lp_solve(wall, connections, limitwall_val, limitwall_idx, columns, rows):
     start_time = time.perf_counter()
-
-    limitwall_idx = to_cplex_idx(limitwall_idx)
-    columns = to_cplex_idx(columns)
-    rows = to_cplex_idx(rows)
     model = Model(name='akari')
 
     wl = len(limitwall_val)
@@ -75,4 +57,3 @@ def lp_solve(wall, connections, limitwall_val, limitwall_idx, columns, rows):
         return [int(solution[x[i]]) for i in n2_r], n2 - wall, time_lp
     else:
         return [0 for _ in n2_r], 0, time_lp
-

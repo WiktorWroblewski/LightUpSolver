@@ -31,7 +31,7 @@ def save_board():
     for row in board:
         print(row)
     print('\n\n\n')
-    eksport(board)
+    export_board(board)
 
 
 def change_size():
@@ -88,7 +88,6 @@ def create_board_buttons(n):
         buttons_lp.append(button_row)
 
 
-
 def create_gui(n):
     global root, board, board_frame1, board_frame2, board_frame3, size_entry
 
@@ -133,20 +132,24 @@ def create_gui(n):
     root.mainloop()
 
 
-def eksport(board):
-    meta_board = [] #metaheuristics: 0 - empty field; 1 - field with light; 'wall' - wall field
+# This function saves information about the current board state in a format required by both metaheuristics and LP solver
+def export_board(board):
+    meta_board = []  # metaheuristics: 0 - empty field; 1 - field with light; 'wall' - wall field
     n = len(board)
-    wall = 0
-    wall_notclear = 0
+    wall = 0  # number of walls on the board
+    wall_notclear = 0  # number of walls with limitations on the number of lights that must be placed in adjacent fields
 
+    # Create an adjacency matrix n^2 x n^2 where element (i, j) is equal to
+    # 1 when field i and j are connected, and 0 otherwise
     connections = [[0 for _ in range(n ** 2)] for _ in range(n ** 2)]
 
-    # auxiliary variables about wall limitations
-    limitwall_val= []
-    limitwall_idx = []
+    # Auxiliary variables for wall limitations
+    limitwall_val = []  # Stores the values of wall limitations
+    limitwall_idx = []  # Stores the indexes of fields adjacent to walls with limitations
 
     for i in range(n):
         for j in range(n):
+            # Process empty fields
             if board[i][j] == 0:
                 meta_board.append(0)
                 connections[(i*n)+j][(i*n)+j] = 1
@@ -167,66 +170,67 @@ def eksport(board):
                 try:
                     k = 1
                     while board[i+k][j] == 0:
-                        connections[(i*n)+j][((i + k) * n) + j] = 1
+                        connections[(i*n)+j][((i+k)*n)+j] = 1
                         k += 1
                 except IndexError:
                     pass
                 try:
                     k = 1
                     while board[i-k][j] == 0 and i - k >= 0:
-                        connections[(i*n)+j][((i - k) * n) + j] = 1
+                        connections[(i*n)+j][((i-k)*n)+j] = 1
                         k += 1
                 except IndexError:
                     pass
 
-
+            # Process walls and walls with light limitations
             else:
                 meta_board.append('wall')
                 wall += 1
-                if board[i][j] != 1:
+                if board[i][j] != 1:  # This indicates the wall has a light limitation
                     wall_notclear += 1
                     limitwall_val.append(int(board[i][j]))
                     temp = []
                     if i + 1 <= n - 1 and board[i+1][j] == 0:
-                        temp.append(((i + 1) * n) + j + 1)
+                        temp.append(((i + 1) * n) + j)
                     if j + 1 <= n - 1 and board[i][j+1] == 0:
-                        temp.append((i * n) + j + 2)
+                        temp.append((i * n) + j + 1)
                     if i - 1 >= 0 and board[i-1][j] == 0:
-                        temp.append(((i - 1) * n) + j + 1)
+                        temp.append(((i - 1) * n) + j)
                     if j - 1 >= 0 and board[i][j-1] == 0:
-                        temp.append((i * n) + j)
+                        temp.append((i * n) + j - 1)
 
                     limitwall_idx.append(temp)
 
-
-        columns = []
-        rows = []
-        for i in range(n):
-            temp = []
-            for j in range(n):
-                if board[i][j] == 0:
-                    temp.append((i*n)+j+1)
-                else:
-                    rows.append(temp)
-                    temp = []
-                if j == n - 1:
-                    rows.append(temp)
+    # Separate columns and rows containing only empty fields
+    columns = []
+    rows = []
+    for i in range(n):
+        temp = []
         for j in range(n):
-            temp = []
-            for i in range(n):
-                if board[i][j] == 0:
-                    temp.append((i*n)+j+1)
-                else:
-                    columns.append(temp)
-                    temp = []
-                if i == n - 1:
-                    columns.append(temp)
+            if board[i][j] == 0:
+                temp.append((i * n) + j)
+            else:
+                rows.append(temp)
+                temp = []
+            if j == n - 1:
+                rows.append(temp)
 
-        while [] in columns:
-            columns.remove([])
+    for j in range(n):
+        temp = []
+        for i in range(n):
+            if board[i][j] == 0:
+                temp.append((i * n) + j)
+            else:
+                columns.append(temp)
+                temp = []
+            if i == n - 1:
+                columns.append(temp)
 
-        while [] in rows:
-            rows.remove([])
+    while [] in columns:
+        columns.remove([])
+
+    while [] in rows:
+        rows.remove([])
 
     # print(meta_board)
     # print(wall)
@@ -238,6 +242,7 @@ def eksport(board):
     # print(rows)
     # print()
 
+    # Call functions to display the solved board using metaheuristics and linear programming
     show_solved_meta(limitwall_idx, limitwall_val, columns, rows, connections, meta_board, board)
     show_solved_lp(limitwall_idx, limitwall_val, columns, rows, connections, wall, board)
 
